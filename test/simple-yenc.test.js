@@ -20,18 +20,9 @@ const stringifiedImagePath = path.join(
   "418294_tree-woody-plant-vascular-plant.jpg.yenc.stringified"
 );
 
-const bufferToUint8Array = (buffer) => {
-  let bytes = [];
-
-  for (const [idx, byte] of buffer.entries()) {
-    bytes.push(byte);
-  }
-
-  return Uint8Array.from(bytes);
-};
-
 const generateTestData = () => {
-  const expectedEncode = yenc.encode(bufferToUint8Array(image));
+  const image = fs.readFileSync(imagePath);
+  const expectedEncode = yenc.encode(Uint8Array.from(image));
   fs.writeFileSync(encodedImagePath, expectedEncode, { encoding: "binary" });
   fs.writeFileSync(stringifiedImagePath, yenc.stringify(expectedEncode), {
     encoding: "binary",
@@ -42,7 +33,7 @@ describe("simple-yenc.js", () => {
   let image, encodedImage, stringifiedImage;
 
   beforeAll(() => {
-    // generateTestData();
+    //generateTestData();
 
     image = fs.readFileSync(imagePath);
     encodedImage = fs.readFileSync(encodedImagePath).toString("binary");
@@ -50,7 +41,7 @@ describe("simple-yenc.js", () => {
   });
 
   it("should encode from a byte array", () => {
-    const result = yenc.encode(bufferToUint8Array(image));
+    const result = yenc.encode(Uint8Array.from(image));
 
     expect(result).toEqual(encodedImage);
   });
@@ -64,7 +55,11 @@ describe("simple-yenc.js", () => {
   it("should properly escape characters for a string template", () => {
     const result = yenc.stringify(encodedImage);
 
-    expect(result).toEqual(stringifiedImage);
+    const stringifiedInJs = eval("() => `" + result + "`")();
+
+    const decodedString = yenc.decode(stringifiedInJs);
+
+    expect(Buffer.compare(image, decodedString));
   });
 });
 

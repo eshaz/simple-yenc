@@ -49,6 +49,9 @@ const decode = (string) => {
 
 // allows embedded javascript string template
 const stringify = (rawString) =>
-  rawString.replace(/[\\]/g, "\\\\").replace(/[`]/g, "\\`");
+  rawString
+    .replace(/[\\]/g, "\\\\")
+    .replace(/[`]/g, "\\`")
+    .replace(/\${/g, "\\${");
 
 module.exports = { encode, decode, stringify };

@@ -40,14 +40,13 @@ Decode converts a yEnc encoded string into a Uint8Array.
 
 ```javascript
 // assuming `encodedString` is already defined
-const yenc = require("simple-yenc");
 
 const decodedUint8Array = yenc.decode(encodedString);
 ```
 
 ### `stringify()`
 
-Stringify adds escape characters for backslash and backtick to a yEnc encoded string so it can be stored within a Javascript string template.
+Stringify adds escape characters for ```'\', '`', '${'``` to a yEnc encoded string so it can be stored within a Javascript string template.
 
 This is useful for inlining binary in Javascript that would otherwise need to be base64 encoded.
 
@@ -55,8 +54,6 @@ When stored as a Javascript string, the string can be decoded by using the `deco
 
 ```javascript
 // assuming `someUintArray` is already defined
-const fs = require("fs");
-const yenc = require("simple-yenc");
 
 const encodedString = yenc.encode(someUint8Array);
 const stringified = yenc.strinfigy(encodedString);
