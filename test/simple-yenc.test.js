@@ -40,10 +40,17 @@ describe("simple-yenc.js", () => {
     stringifiedImage = fs.readFileSync(stringifiedImagePath).toString("binary");
   });
 
+  it("should encode and decode to the same data", () => {
+    const encoded = yenc.encode(Uint8Array.from(image));
+    const decoded = yenc.decode(encoded);
+
+    expect(Buffer.compare(image, decoded)).toEqual(0);
+  });
+
   it("should encode from a byte array", () => {
     const result = yenc.encode(Uint8Array.from(image));
 
-    expect(result).toEqual(encodedImage);
+    expect(result === encodedImage).toBeTruthy();
   });
 
   it("should decode from a string", () => {

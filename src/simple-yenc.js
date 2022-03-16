@@ -59,17 +59,15 @@ const decode = (string) => {
 
   const output = new Uint8Array(string.length);
 
-  let continued = false,
+  let escaped = false,
     byteIndex = 0,
     byte;
 
   for (let i = 0; i < string.length; i++) {
     byte = string.charCodeAt(i);
 
-    if (byte === 13 || byte === 10) continue;
-
-    if (byte === 61 && !continued) {
-      continued = true;
+    if (byte === 61 && !escaped) {
+      escaped = true;
       continue;
     }
 
@@ -78,8 +76,8 @@ const decode = (string) => {
       if (htmlOverride) byte = htmlOverride + 127;
     }
 
-    if (continued) {
-      continued = false;
+    if (escaped) {
+      escaped = false;
       byte -= 64;
     }
 
