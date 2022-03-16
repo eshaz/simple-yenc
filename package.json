@@ -17,6 +17,10 @@
     "url": "https://github.com/eshaz/simple-yenc/issues"
   },
   "homepage": "https://github.com/eshaz/simple-yenc#readme",
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/eshaz"
+  },
   "devDependencies": {
     "@types/jest": "^27.4.1",
     "jest": "^27.5.1",

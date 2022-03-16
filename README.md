@@ -38,6 +38,8 @@ const encodedString = yenc.encode(someUint8Array);
 
 Decode converts a yEnc encoded string into a Uint8Array.
 
+Note: If you are embedding the yEnc string in HTML, this function will automatically handle the [HTML character reference overrides](https://html.spec.whatwg.org/multipage/parsing.html#table-charref-overrides). The HTML `charset` must be set to a character encoding that allows for single byte character representations such as `cp1252`, `ISO-8859-1`, etc. See [Issue #1](https://github.com/eshaz/simple-yenc/issues/1) for more information. 
+
 ```javascript
 // assuming `encodedString` is already defined
 
@@ -58,5 +60,11 @@ When stored as a Javascript string, the string can be decoded by using the `deco
 const encodedString = yenc.encode(someUint8Array);
 const stringified = yenc.strinfigy(encodedString);
 
-fs.writeFileSync("myfile.js", "const encodedBinary = `" + stringified + "`");
+fs.writeFileSync(
+  "myfile.js",
+  Buffer.concat(
+    ["const encodedBinary = `", stringified, "`"].map(Buffer.from)
+  ),
+  { encoding: "binary" }
+);
 ```
