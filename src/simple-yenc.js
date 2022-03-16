@@ -20,6 +20,43 @@ const encode = (byteArray) => {
 };
 
 const decode = (string) => {
+  const htmlCodeOverrides = new Map();
+  [
+    ,
+    8364,
+    ,
+    8218,
+    402,
+    8222,
+    8230,
+    8224,
+    8225,
+    710,
+    8240,
+    352,
+    8249,
+    338,
+    ,
+    381,
+    ,
+    ,
+    8216,
+    8217,
+    8220,
+    8221,
+    8226,
+    8211,
+    8212,
+    732,
+    8482,
+    353,
+    8250,
+    339,
+    ,
+    382,
+    376,
+  ].forEach((k, v) => htmlCodeOverrides.set(k, v));
+
   const output = new Uint8Array(string.length);
 
   let continued = false,
@@ -37,9 +74,10 @@ const decode = (string) => {
     }
 
     if (byte > 255) {
-      byte = 128 + [8364,,8218,402,8222,8230,8224,8225,710,8240,352,8249,338,,381,,,8216,8217,8220,8221,8226,8211,8212,732,8482,353,8250,339,,382,376].indexOf(byte)
+      const htmlOverride = htmlCodeOverrides.get(byte);
+      if (htmlOverride) byte = htmlOverride + 127;
     }
-    
+
     if (continued) {
       continued = false;
       byte -= 64;
