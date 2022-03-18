@@ -4,7 +4,7 @@
   "description": "Minimalist yEnc encoder and decoder library for browser and NodeJS",
   "main": "src/simple-yenc.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest --maxWorkers=100%",
     "format": "prettier --write '**/*.js' --write 'package.json'"
   },
   "repository": {

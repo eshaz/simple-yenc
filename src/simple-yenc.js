@@ -87,6 +87,112 @@ const decode = (string) => {
   return output.subarray(0, byteIndex);
 };
 
+const encodeDynamicOffset = (byteArray, stringWrapper) => {
+  let shouldEscape,
+    offsetLength = Infinity,
+    offset = 0;
+
+  if (stringWrapper === '"')
+    shouldEscape = (byte1, byte2) =>
+      byte1 === 0 || //  NULL
+      byte1 === 8 || //  BS
+      byte1 === 9 || //  TAB
+      byte1 === 10 || // LF
+      byte1 === 11 || // VT
+      byte1 === 12 || // FF
+      byte1 === 13 || // CR
+      byte1 === 34 || // "
+      byte1 === 92 || // \
+      byte1 === 61; //   =;
+
+  if (stringWrapper === "'")
+    shouldEscape = (byte1, byte2) =>
+      byte1 === 0 || //  NULL
+      byte1 === 8 || //  BS
+      byte1 === 9 || //  TAB
+      byte1 === 10 || // LF
+      byte1 === 11 || // VT
+      byte1 === 12 || // FF
+      byte1 === 13 || // CR
+      byte1 === 39 || // '
+      byte1 === 92 || // \
+      byte1 === 61; //   =;
+
+  if (stringWrapper === "`")
+    shouldEscape = (byte1, byte2) =>
+      byte1 === 61 || // =
+      byte1 === 13 || // CR
+      byte1 === 96 || // `
+      (byte1 === 36 && byte2 === 123); // ${
+
+  // search for the byte offset with the least amount of escape characters
+  for (let o = 0; o < 256; o++) {
+    let length = 0;
+
+    for (let i = 0; i < byteArray.length; i++) {
+      const byte1 = (byteArray[i] + o) % 256;
+      const byte2 = (byteArray[i + 1] + o) % 256;
+
+      if (shouldEscape(byte1, byte2)) length++;
+      length++;
+    }
+
+    if (length < offsetLength) {
+      offsetLength = length;
+      offset = o;
+    }
+  }
+
+  const charArray = [offset.toString(16).padStart(2, "0")];
+
+  for (let i = 0; i < byteArray.length; i++) {
+    const byte1 = (byteArray[i] + offset) % 256;
+    const byte2 = (byteArray[i + 1] + offset) % 256;
+
+    if (shouldEscape(byte1, byte2)) {
+      charArray.push("=", String.fromCharCode((byte1 + 64) % 256));
+    } else {
+      charArray.push(String.fromCharCode(byte1));
+    }
+  }
+
+  return charArray.join("");
+};
+
+const decodeDynamicOffset = (string) => {
+  const output = new Uint8Array(string.length);
+  const offset = parseInt(string.substring(0, 2), 16);
+  const offsetReverse = 256 - offset;
+
+  let escaped = false,
+    byteIndex = 0,
+    byte;
+
+  for (let i = 2; i < string.length; i++) {
+    byte = string.charCodeAt(i);
+
+    if (byte === 61 && !escaped) {
+      escaped = true;
+      continue;
+    }
+
+    //if (byte > 255) {
+    //  const htmlOverride = htmlCodeOverrides.get(byte);
+    //  if (htmlOverride) byte = htmlOverride + 127;
+    //}
+
+    if (escaped) {
+      escaped = false;
+      byte -= 64;
+    }
+
+    output[byteIndex++] =
+      byte < offset && byte > 0 ? byte + offsetReverse : byte - offset;
+  }
+
+  return output.subarray(0, byteIndex);
+};
+
 // allows embedded javascript string template
 const stringify = (rawString) =>
   rawString
@@ -94,4 +200,10 @@ const stringify = (rawString) =>
     .replace(/[`]/g, "\\`")
     .replace(/\${/g, "\\${");
 
-module.exports = { encode, decode, stringify };
+module.exports = {
+  encode,
+  decode,
+  encodeDynamicOffset,
+  decodeDynamicOffset,
+  stringify,
+};

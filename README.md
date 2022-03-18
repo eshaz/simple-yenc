@@ -50,6 +50,8 @@ const decodedUint8Array = yenc.decode(encodedString);
 
 Stringify adds escape characters for ```'\', '`', '${'``` to a yEnc encoded string so it can be stored within a Javascript string template.
 
+You can access the encoded value as a string using [``` String.raw`` ```](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/raw).
+
 This is useful for inlining binary in Javascript that would otherwise need to be base64 encoded.
 
 When stored as a Javascript string, the string can be decoded by using the `decode` function.
