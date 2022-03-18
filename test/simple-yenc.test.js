@@ -144,26 +144,23 @@ describe("simple-yenc.js", () => {
     });
   });
 
-  describe("dynamic offset encoding", () => {
+  describe("DynEnc Encoded Strings", () => {
     const offsetEncodeWorker = (
       inputPath,
       outputPath,
       stringWrapper,
-      encodeDynamicOffset,
+      dynamicEncode,
       logDecodeStats
     ) => {
       const fs = require("fs");
       const input = fs.readFileSync(inputPath);
-      const encoded = encodeDynamicOffset(
-        Uint8Array.from(input),
-        stringWrapper
-      );
+      const encoded = dynamicEncode(Uint8Array.from(input), stringWrapper);
 
       logDecodeStats(
-        "Dynamic offset " + stringWrapper,
+        "DynEnc " + stringWrapper,
         input,
         encoded,
-        parseInt(encoded.substring(0, 2), 16)
+        parseInt(encoded.substring(11, 13), 16)
       );
 
       fs.writeFileSync(outputPath, encoded, { encoding: "binary" });
@@ -189,7 +186,7 @@ describe("simple-yenc.js", () => {
               "'," +
               stringWrapper +
               "," +
-              yenc.encodeDynamicOffset.toString() +
+              yenc.dynamicEncode.toString() +
               "," +
               logDecodeStats.toString() +
               ")",
@@ -200,16 +197,16 @@ describe("simple-yenc.js", () => {
           encoded = await fs.promises
             .readFile(outputPath)
             .then((f) => f.toString("binary"));
-          const decoded = yenc.decodeDynamicOffset(encoded);
+          const decoded = yenc.decode(encoded);
 
           expect(Buffer.compare(image, decoded)).toEqual(0);
         },
         30000
       );
 
-      it("should properly escape characters for a string using a double quote", () => {
+      it("should properly escape characters for a string using double quotes", () => {
         const stringifiedInJs = eval('() => "' + encoded + '"')();
-        const decodedString = yenc.decodeDynamicOffset(stringifiedInJs);
+        const decodedString = yenc.decode(stringifiedInJs);
 
         expect(Buffer.compare(image, decodedString));
       });
@@ -235,7 +232,7 @@ describe("simple-yenc.js", () => {
               "'," +
               stringWrapper +
               "," +
-              yenc.encodeDynamicOffset.toString() +
+              yenc.dynamicEncode.toString() +
               "," +
               logDecodeStats.toString() +
               ")",
@@ -246,7 +243,7 @@ describe("simple-yenc.js", () => {
           encoded = await fs.promises
             .readFile(outputPath)
             .then((f) => f.toString("binary"));
-          const decoded = yenc.decodeDynamicOffset(encoded);
+          const decoded = yenc.decode(encoded);
 
           expect(Buffer.compare(image, decoded)).toEqual(0);
         },
@@ -255,7 +252,7 @@ describe("simple-yenc.js", () => {
 
       it("should properly escape characters for a string using a single quote", () => {
         const stringifiedInJs = eval("() => '" + encoded + "'")();
-        const decodedString = yenc.decodeDynamicOffset(stringifiedInJs);
+        const decodedString = yenc.decode(stringifiedInJs);
 
         expect(Buffer.compare(image, decodedString));
       });
@@ -281,7 +278,7 @@ describe("simple-yenc.js", () => {
               "'," +
               stringWrapper +
               "," +
-              yenc.encodeDynamicOffset.toString() +
+              yenc.dynamicEncode.toString() +
               "," +
               logDecodeStats.toString() +
               ")",
@@ -292,7 +289,7 @@ describe("simple-yenc.js", () => {
           encoded = await fs.promises
             .readFile(outputPath)
             .then((f) => f.toString("binary"));
-          const decoded = yenc.decodeDynamicOffset(encoded);
+          const decoded = yenc.decode(encoded);
 
           expect(Buffer.compare(image, decoded)).toEqual(0);
         },
@@ -301,7 +298,7 @@ describe("simple-yenc.js", () => {
 
       it("should properly escape characters for a string template", () => {
         const stringifiedInJs = eval("() => String.raw`" + encoded + "`")();
-        const decodedString = yenc.decodeDynamicOffset(stringifiedInJs);
+        const decodedString = yenc.decode(stringifiedInJs);
 
         expect(Buffer.compare(image, decodedString));
       });

@@ -61,9 +61,21 @@ const decode = (string) => {
 
   let escaped = false,
     byteIndex = 0,
-    byte;
+    byte,
+    offset = 42, // default yEnc offset
+    startIdx = 0;
 
-  for (let i = 0; i < string.length; i++) {
+  if (string.length > 13 && string.substring(0, 9) === "DynEncode") {
+    const version = parseInt(string.substring(9, 11), 16);
+    if (version === 0) {
+      offset = parseInt(string.substring(11, 13), 16);
+      startIdx = 13;
+    }
+  }
+
+  const offsetReverse = 256 - offset;
+
+  for (let i = startIdx; i < string.length; i++) {
     byte = string.charCodeAt(i);
 
     if (byte === 61 && !escaped) {
@@ -81,13 +93,14 @@ const decode = (string) => {
       byte -= 64;
     }
 
-    output[byteIndex++] = byte < 42 && byte > 0 ? byte + 214 : byte - 42;
+    output[byteIndex++] =
+      byte < offset && byte > 0 ? byte + offsetReverse : byte - offset;
   }
 
   return output.subarray(0, byteIndex);
 };
 
-const encodeDynamicOffset = (byteArray, stringWrapper) => {
+const dynamicEncode = (byteArray, stringWrapper = '"') => {
   let shouldEscape,
     offsetLength = Infinity,
     offset = 0;
@@ -143,7 +156,11 @@ const encodeDynamicOffset = (byteArray, stringWrapper) => {
     }
   }
 
-  const charArray = [offset.toString(16).padStart(2, "0")];
+  const charArray = [
+    ..."DynEncode", // magic signature
+    ..."00", // version 0x00 - 0xff
+    offset.toString(16).padStart(2, "0"), // best offset in bytes 0x00 - 0xff
+  ];
 
   for (let i = 0; i < byteArray.length; i++) {
     const byte1 = (byteArray[i] + offset) % 256;
@@ -159,40 +176,6 @@ const encodeDynamicOffset = (byteArray, stringWrapper) => {
   return charArray.join("");
 };
 
-const decodeDynamicOffset = (string) => {
-  const output = new Uint8Array(string.length);
-  const offset = parseInt(string.substring(0, 2), 16);
-  const offsetReverse = 256 - offset;
-
-  let escaped = false,
-    byteIndex = 0,
-    byte;
-
-  for (let i = 2; i < string.length; i++) {
-    byte = string.charCodeAt(i);
-
-    if (byte === 61 && !escaped) {
-      escaped = true;
-      continue;
-    }
-
-    //if (byte > 255) {
-    //  const htmlOverride = htmlCodeOverrides.get(byte);
-    //  if (htmlOverride) byte = htmlOverride + 127;
-    //}
-
-    if (escaped) {
-      escaped = false;
-      byte -= 64;
-    }
-
-    output[byteIndex++] =
-      byte < offset && byte > 0 ? byte + offsetReverse : byte - offset;
-  }
-
-  return output.subarray(0, byteIndex);
-};
-
 // allows embedded javascript string template
 const stringify = (rawString) =>
   rawString
@@ -202,8 +185,7 @@ const stringify = (rawString) =>
 
 module.exports = {
   encode,
+  dynamicEncode,
   decode,
-  encodeDynamicOffset,
-  decodeDynamicOffset,
   stringify,
 };
