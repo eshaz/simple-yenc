@@ -71,12 +71,12 @@ const encodedString = yenc.encode(dataToEncode, stringContainerCharacter);
 * First Parameter
   * `Array` of integers 0-255 of data to encode
 * Second Parameter
-  * `string` representing the character used to declare the string the data will be stored. Escape characters are selected automatically depending on this value.
+  * `string` representing the character used to declare the string the data will be stored. Escape characters are selected automatically base on JavaScript string escape requirements depending on this value.
   * Valid parameter values: ``` ` ``` (backtick), `"` (double quote), `'` (single quote) 
 
 ### `decode()`
 
-Decodes a yEnc of dynEnc encoded string into a Uint8Array.
+Decodes a yEnc or dynEnc encoded string into a Uint8Array.
 
 Note: If you are embedding the yEnc string in HTML, this function will automatically handle the [HTML character reference overrides](https://html.spec.whatwg.org/multipage/parsing.html#table-charref-overrides). The HTML `charset` must be set to a character encoding that allows for single byte character representations such as `cp1252`, `ISO-8859-1`, etc. See [Issue #1](https://github.com/eshaz/simple-yenc/issues/1) for more information. 
 
