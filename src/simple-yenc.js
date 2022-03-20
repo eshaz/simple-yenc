@@ -65,7 +65,7 @@ const decode = (string) => {
     offset = 42, // default yEnc offset
     startIdx = 0;
 
-  if (string.length > 13 && string.substring(0, 9) === "DynEncode") {
+  if (string.length > 13 && string.substring(0, 9) === "dynEncode") {
     const version = parseInt(string.substring(9, 11), 16);
     if (version === 0) {
       offset = parseInt(string.substring(11, 13), 16);
@@ -106,7 +106,7 @@ const dynamicEncode = (byteArray, stringWrapper = '"') => {
     offset = 0;
 
   if (stringWrapper === '"')
-    shouldEscape = (byte1, byte2) =>
+    shouldEscape = (byte1) =>
       byte1 === 0 || //  NULL
       byte1 === 8 || //  BS
       byte1 === 9 || //  TAB
@@ -119,7 +119,7 @@ const dynamicEncode = (byteArray, stringWrapper = '"') => {
       byte1 === 61; //   =;
 
   if (stringWrapper === "'")
-    shouldEscape = (byte1, byte2) =>
+    shouldEscape = (byte1) =>
       byte1 === 0 || //  NULL
       byte1 === 8 || //  BS
       byte1 === 9 || //  TAB
@@ -157,8 +157,8 @@ const dynamicEncode = (byteArray, stringWrapper = '"') => {
   }
 
   const charArray = [
-    ..."DynEncode", // magic signature
-    ..."00", // version 0x00 - 0xff
+    "dynEncode", // magic signature
+    "00", // version 0x00 - 0xfe (0xff reserved)
     offset.toString(16).padStart(2, "0"), // best offset in bytes 0x00 - 0xff
   ];
 
