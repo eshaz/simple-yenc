@@ -1,10 +1,10 @@
 {
   "name": "simple-yenc",
-  "version": "0.1.0",
-  "description": "Minimalist yEnc encoder and decoder library for browser and NodeJS",
+  "version": "0.2.0",
+  "description": "Minimalist yEnc and dynEncode encoder and decoder library for browser and NodeJS",
   "main": "src/simple-yenc.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest --maxWorkers=100%",
     "format": "prettier --write '**/*.js' --write 'package.json'"
   },
   "repository": {
@@ -21,6 +21,14 @@
     "type": "individual",
     "url": "https://github.com/sponsors/eshaz"
   },
+  "keywords": [
+    "yEnc",
+    "yEncode",
+    "dynEnc",
+    "dynEncode",
+    "Dynamic Encode",
+    "Binary Encoding"
+  ],
   "devDependencies": {
     "@types/jest": "^27.4.1",
     "jest": "^27.5.1",

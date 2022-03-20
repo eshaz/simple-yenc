@@ -61,9 +61,21 @@ const decode = (string) => {
 
   let escaped = false,
     byteIndex = 0,
-    byte;
+    byte,
+    offset = 42, // default yEnc offset
+    startIdx = 0;
 
-  for (let i = 0; i < string.length; i++) {
+  if (string.length > 13 && string.substring(0, 9) === "dynEncode") {
+    const version = parseInt(string.substring(9, 11), 16);
+    if (version === 0) {
+      offset = parseInt(string.substring(11, 13), 16);
+      startIdx = 13;
+    }
+  }
+
+  const offsetReverse = 256 - offset;
+
+  for (let i = startIdx; i < string.length; i++) {
     byte = string.charCodeAt(i);
 
     if (byte === 61 && !escaped) {
@@ -81,10 +93,87 @@ const decode = (string) => {
       byte -= 64;
     }
 
-    output[byteIndex++] = byte < 42 && byte > 0 ? byte + 214 : byte - 42;
+    output[byteIndex++] =
+      byte < offset && byte > 0 ? byte + offsetReverse : byte - offset;
   }
 
   return output.subarray(0, byteIndex);
+};
+
+const dynamicEncode = (byteArray, stringWrapper = '"') => {
+  let shouldEscape,
+    offsetLength = Infinity,
+    offset = 0;
+
+  if (stringWrapper === '"')
+    shouldEscape = (byte1) =>
+      byte1 === 0 || //  NULL
+      byte1 === 8 || //  BS
+      byte1 === 9 || //  TAB
+      byte1 === 10 || // LF
+      byte1 === 11 || // VT
+      byte1 === 12 || // FF
+      byte1 === 13 || // CR
+      byte1 === 34 || // "
+      byte1 === 92 || // \
+      byte1 === 61; //   =;
+
+  if (stringWrapper === "'")
+    shouldEscape = (byte1) =>
+      byte1 === 0 || //  NULL
+      byte1 === 8 || //  BS
+      byte1 === 9 || //  TAB
+      byte1 === 10 || // LF
+      byte1 === 11 || // VT
+      byte1 === 12 || // FF
+      byte1 === 13 || // CR
+      byte1 === 39 || // '
+      byte1 === 92 || // \
+      byte1 === 61; //   =;
+
+  if (stringWrapper === "`")
+    shouldEscape = (byte1, byte2) =>
+      byte1 === 61 || // =
+      byte1 === 13 || // CR
+      byte1 === 96 || // `
+      (byte1 === 36 && byte2 === 123); // ${
+
+  // search for the byte offset with the least amount of escape characters
+  for (let o = 0; o < 256; o++) {
+    let length = 0;
+
+    for (let i = 0; i < byteArray.length; i++) {
+      const byte1 = (byteArray[i] + o) % 256;
+      const byte2 = (byteArray[i + 1] + o) % 256;
+
+      if (shouldEscape(byte1, byte2)) length++;
+      length++;
+    }
+
+    if (length < offsetLength) {
+      offsetLength = length;
+      offset = o;
+    }
+  }
+
+  const charArray = [
+    "dynEncode", // magic signature
+    "00", // version 0x00 - 0xfe (0xff reserved)
+    offset.toString(16).padStart(2, "0"), // best offset in bytes 0x00 - 0xff
+  ];
+
+  for (let i = 0; i < byteArray.length; i++) {
+    const byte1 = (byteArray[i] + offset) % 256;
+    const byte2 = (byteArray[i + 1] + offset) % 256;
+
+    if (shouldEscape(byte1, byte2)) {
+      charArray.push("=", String.fromCharCode((byte1 + 64) % 256));
+    } else {
+      charArray.push(String.fromCharCode(byte1));
+    }
+  }
+
+  return charArray.join("");
 };
 
 // allows embedded javascript string template
@@ -94,4 +183,9 @@ const stringify = (rawString) =>
     .replace(/[`]/g, "\\`")
     .replace(/\${/g, "\\${");
 
-module.exports = { encode, decode, stringify };
+module.exports = {
+  encode,
+  dynamicEncode,
+  decode,
+  stringify,
+};
