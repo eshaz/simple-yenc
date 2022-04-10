@@ -143,8 +143,8 @@ const dynamicEncode = (byteArray, stringWrapper = '"') => {
     let length = 0;
 
     for (let i = 0; i < byteArray.length; i++) {
-      const byte1 = (byteArray[i] + o) % 256;
-      const byte2 = (byteArray[i + 1] + o) % 256;
+      const byte1 = (byteArray[i] + o) % 256 | 0;
+      const byte2 = (byteArray[i + 1] + o) % 256 | 0;
 
       if (shouldEscape(byte1, byte2)) length++;
       length++;
