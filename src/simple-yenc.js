@@ -156,6 +156,9 @@ const dynamicEncode = (byteArray, stringWrapper = '"') => {
     }
   }
 
+  const escapeCharacter = (byte1, charArray) =>
+    charArray.push("=", String.fromCharCode((byte1 + 64) % 256));
+
   const charArray = [
     "dynEncode", // magic signature
     "00", // version 0x00 - 0xfe (0xff reserved)
@@ -167,10 +170,16 @@ const dynamicEncode = (byteArray, stringWrapper = '"') => {
     const byte2 = (byteArray[i + 1] + offset) % 256;
 
     if (shouldEscape(byte1, byte2)) {
-      charArray.push("=", String.fromCharCode((byte1 + 64) % 256));
+      escapeCharacter(byte1, charArray);
     } else {
       charArray.push(String.fromCharCode(byte1));
     }
+  }
+
+  // correct edge case where escape character is at end of string
+  if (charArray[charArray.length - 1] === "\\") {
+    charArray.pop();
+    escapeCharacter("\\", charArray);
   }
 
   return charArray.join("");
