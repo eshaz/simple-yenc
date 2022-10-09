@@ -136,6 +136,7 @@ const dynamicEncode = (byteArray, stringWrapper = '"') => {
       byte1 === 61 || // =
       byte1 === 13 || // CR
       byte1 === 96 || // `
+      (byte1 === 92 && (byte2 === 85 || byte2 === 117)) || // \u or \U
       (byte1 === 36 && byte2 === 123); // ${
 
   // search for the byte offset with the least amount of escape characters
