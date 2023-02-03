@@ -193,9 +193,4 @@ const stringify = (rawString) =>
     .replace(/[`]/g, "\\`")
     .replace(/\${/g, "\\${");
 
-module.exports = {
-  encode,
-  dynamicEncode,
-  decode,
-  stringify,
-};
+export { encode, dynamicEncode, decode, stringify };
