@@ -41,7 +41,7 @@ Install via [NPM](https://www.npmjs.com/package/simple-yenc)
 const yenc = require("simple-yenc");
 
 // ES6 Import
-import yenc from "simple-yenc";
+import * as yenc from "simple-yenc";
 ```
 
 ### `encode()`
