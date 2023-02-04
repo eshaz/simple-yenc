@@ -101,11 +101,19 @@ const decode = (string) => {
 };
 
 const dynamicEncode = (byteArray, stringWrapper = '"') => {
+  const modulo = (n, m) => ((n % m) + m) % m,
+    escapeCharacter = (byte1, charArray) =>
+      charArray.push(String.fromCharCode(61, (byte1 + 64) % 256));
+
   let shouldEscape,
+    escapeBytes,
+    byteSequences = [],
     offsetLength = Infinity,
+    byteCounts = Array(256).fill(0),
     offset = 0;
 
-  if (stringWrapper === '"')
+  if (stringWrapper === '"') {
+    escapeBytes = [0, 8, 9, 10, 11, 12, 13, 34, 92, 61];
     shouldEscape = (byte1) =>
       byte1 === 0 || //  NULL
       byte1 === 8 || //  BS
@@ -117,8 +125,8 @@ const dynamicEncode = (byteArray, stringWrapper = '"') => {
       byte1 === 34 || // "
       byte1 === 92 || // \
       byte1 === 61; //   =;
-
-  if (stringWrapper === "'")
+  } else if (stringWrapper === "'") {
+    escapeBytes = [0, 8, 9, 10, 11, 12, 13, 39, 92, 61];
     shouldEscape = (byte1) =>
       byte1 === 0 || //  NULL
       byte1 === 8 || //  BS
@@ -130,35 +138,47 @@ const dynamicEncode = (byteArray, stringWrapper = '"') => {
       byte1 === 39 || // '
       byte1 === 92 || // \
       byte1 === 61; //   =;
-
-  if (stringWrapper === "`")
+  } else if (stringWrapper === "`") {
+    escapeBytes = [13, 61, 96];
+    byteSequences = [7, 205, 231];
     shouldEscape = (byte1, byte2) =>
-      byte1 === 61 || // =
       byte1 === 13 || // CR
-      byte1 === 96 || // `
+      (byte1 === 36 && byte2 === 123) || // ${
+      byte1 === 61 || // =
       (byte1 === 92 && (byte2 === 85 || byte2 === 117)) || // \u or \U
-      (byte1 === 36 && byte2 === 123); // ${
+      byte1 === 96; // `
+  }
+
+  // collect the number of bytes for the offset search
+  for (let i = 0; i < byteArray.length; i++) {
+    const byte1 = byteArray[i] | 0;
+
+    byteCounts[byte1]++;
+
+    for (let j = 0; j < byteSequences.length; j++) {
+      const byteSequence = byteSequences[j];
+
+      // for the backtick escape, there are sequences of bytes that need to be escaped
+      // check if this byte sequence is the same and add to the length count if so
+      if (modulo((byte1 - byteArray[i + 1]) | 0, 256) === byteSequence)
+        byteCounts[byte1]++;
+    }
+  }
 
   // search for the byte offset with the least amount of escape characters
   for (let o = 0; o < 256; o++) {
     let length = 0;
 
-    for (let i = 0; i < byteArray.length; i++) {
-      const byte1 = (byteArray[i] + o) % 256 | 0;
-      const byte2 = (byteArray[i + 1] + o) % 256 | 0;
+    // for each escape byte, add the byte counts collected above
+    for (let i = 0; i < escapeBytes.length; i++)
+      length += byteCounts[modulo(escapeBytes[i] - o, 256)];
 
-      if (shouldEscape(byte1, byte2)) length++;
-      length++;
-    }
-
+    // if the current offset results in a smaller length, use that
     if (length < offsetLength) {
       offsetLength = length;
       offset = o;
     }
   }
-
-  const escapeCharacter = (byte1, charArray) =>
-    charArray.push("=", String.fromCharCode((byte1 + 64) % 256));
 
   const charArray = [
     "dynEncode", // magic signature
@@ -170,11 +190,9 @@ const dynamicEncode = (byteArray, stringWrapper = '"') => {
     const byte1 = (byteArray[i] + offset) % 256;
     const byte2 = (byteArray[i + 1] + offset) % 256;
 
-    if (shouldEscape(byte1, byte2)) {
-      escapeCharacter(byte1, charArray);
-    } else {
-      charArray.push(String.fromCharCode(byte1));
-    }
+    shouldEscape(byte1, byte2)
+      ? escapeCharacter(byte1, charArray)
+      : charArray.push(String.fromCharCode(byte1));
   }
 
   // correct edge case where escape character is at end of string
