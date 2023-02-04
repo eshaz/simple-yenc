@@ -10,6 +10,9 @@ const imagePath = path.join(
   __dirname,
   "418294_tree-woody-plant-vascular-plant.jpg"
 );
+const opusPath = path.join(__dirname, "ogg.opus");
+const vorbisPath = path.join(__dirname, "ogg.vorbis");
+const mpegPath = path.join(__dirname, "mpeg.cbr.mp3");
 const base64ImagePath = path.join(
   __dirname,
   "418294_tree-woody-plant-vascular-plant.jpg.base64"
@@ -59,24 +62,38 @@ const logDecodeStats = (testName, input, output, offset) => {
 };
 
 describe("simple-yenc.js", () => {
-  let image, encodedImage, bytes, encodedBytes, stringifiedImage;
+  let image,
+    opus,
+    mpeg,
+    vorbis,
+    encodedImage,
+    bytes,
+    encodedBytes,
+    stringifiedImage;
 
   beforeAll(async () => {
     //generateTestData();
-    [image, encodedImage, bytes, encodedBytes, stringifiedImage] =
-      await Promise.all([
-        fs.promises.readFile(imagePath),
-        fs.promises
-          .readFile(encodedImagePath)
-          .then((f) => f.toString("binary")),
-        fs.promises.readFile(bytesPath),
-        fs.promises
-          .readFile(encodedBytesPath)
-          .then((f) => f.toString("binary")),
-        fs.promises
-          .readFile(stringifiedImagePath)
-          .then((f) => f.toString("binary")),
-      ]);
+    [
+      image,
+      opus,
+      mpeg,
+      vorbis,
+      encodedImage,
+      bytes,
+      encodedBytes,
+      stringifiedImage,
+    ] = await Promise.all([
+      fs.promises.readFile(imagePath),
+      fs.promises.readFile(opusPath),
+      fs.promises.readFile(mpegPath),
+      fs.promises.readFile(vorbisPath),
+      fs.promises.readFile(encodedImagePath).then((f) => f.toString("binary")),
+      fs.promises.readFile(bytesPath),
+      fs.promises.readFile(encodedBytesPath).then((f) => f.toString("binary")),
+      fs.promises
+        .readFile(stringifiedImagePath)
+        .then((f) => f.toString("binary")),
+    ]);
   });
 
   describe("yEnc encoded strings", () => {
@@ -224,7 +241,7 @@ describe("simple-yenc.js", () => {
       let encoded;
 
       it.concurrent(
-        "should encode and decode to the same data when double quote",
+        "should encode and decode to the same data when double quote image",
         async () => {
           const stringWrapper = '"\\""';
           const outputPath = imagePath + ".dynamic.doublequote";
@@ -236,7 +253,65 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
+          expect(encoded.length).toEqual(9572293); // 46
           expect(Buffer.compare(image, decoded)).toEqual(0);
+        },
+        30000
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when double quote opus",
+        async () => {
+          const stringWrapper = '"\\""';
+          const outputPath = opusPath + ".dynamic.doublequote";
+
+          encoded = await dynamicEncodeWorker(
+            opusPath,
+            outputPath,
+            stringWrapper
+          );
+          const decoded = yenc.decode(encoded);
+
+          expect(encoded.length).toEqual(950184); // 224
+          expect(Buffer.compare(opus, decoded)).toEqual(0);
+        },
+        30000
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when double quote mpeg",
+        async () => {
+          const stringWrapper = '"\\""';
+          const outputPath = mpegPath + ".dynamic.doublequote";
+
+          encoded = await dynamicEncodeWorker(
+            mpegPath,
+            outputPath,
+            stringWrapper
+          );
+          const decoded = yenc.decode(encoded);
+
+          expect(encoded.length).toEqual(1311940); // 143
+          expect(Buffer.compare(mpeg, decoded)).toEqual(0);
+        },
+        30000
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when double quote vorbis",
+        async () => {
+          const stringWrapper = '"\\""';
+          const outputPath = vorbisPath + ".dynamic.doublequote";
+
+          encoded = await dynamicEncodeWorker(
+            vorbisPath,
+            outputPath,
+            stringWrapper
+          );
+          const decoded = yenc.decode(encoded);
+
+          expect(encoded.length).toEqual(1758722); // 118
+          expect(Buffer.compare(vorbis, decoded)).toEqual(0);
         },
         30000
       );
@@ -252,6 +327,7 @@ describe("simple-yenc.js", () => {
         );
         const decoded = yenc.decode(encoded);
 
+        expect(encoded.length).toEqual(279);
         expect(Buffer.compare(bytes, decoded)).toEqual(0);
       }, 30000);
 
@@ -267,7 +343,7 @@ describe("simple-yenc.js", () => {
       let encoded;
 
       it.concurrent(
-        "should encode and decode to the same data when single quote",
+        "should encode and decode to the same data when single quote image",
         async () => {
           const stringWrapper = '"\'"';
           const outputPath = imagePath + ".dynamic.singlequote";
@@ -279,7 +355,65 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
+          expect(encoded.length).toEqual(9572486); // 77
           expect(Buffer.compare(image, decoded)).toEqual(0);
+        },
+        30000
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when single quote opus",
+        async () => {
+          const stringWrapper = '"\'"';
+          const outputPath = opusPath + ".dynamic.singlequote";
+
+          encoded = await dynamicEncodeWorker(
+            opusPath,
+            outputPath,
+            stringWrapper
+          );
+          const decoded = yenc.decode(encoded);
+
+          expect(encoded.length).toEqual(950157); // 225
+          expect(Buffer.compare(opus, decoded)).toEqual(0);
+        },
+        30000
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when single quote mpeg",
+        async () => {
+          const stringWrapper = '"\'"';
+          const outputPath = mpegPath + ".dynamic.singlequote";
+
+          encoded = await dynamicEncodeWorker(
+            mpegPath,
+            outputPath,
+            stringWrapper
+          );
+          const decoded = yenc.decode(encoded);
+
+          expect(encoded.length).toEqual(1311732); // 69
+          expect(Buffer.compare(mpeg, decoded)).toEqual(0);
+        },
+        30000
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when single quote vorbis",
+        async () => {
+          const stringWrapper = '"\\""';
+          const outputPath = vorbisPath + ".dynamic.singlequote";
+
+          encoded = await dynamicEncodeWorker(
+            vorbisPath,
+            outputPath,
+            stringWrapper
+          );
+          const decoded = yenc.decode(encoded);
+
+          expect(encoded.length).toEqual(1758722); // 188
+          expect(Buffer.compare(vorbis, decoded)).toEqual(0);
         },
         30000
       );
@@ -295,6 +429,7 @@ describe("simple-yenc.js", () => {
         );
         const decoded = yenc.decode(encoded);
 
+        expect(encoded.length).toEqual(279);
         expect(Buffer.compare(bytes, decoded)).toEqual(0);
       }, 30000);
 
@@ -310,7 +445,7 @@ describe("simple-yenc.js", () => {
       let encoded;
 
       it.concurrent(
-        "should encode and decode to the same data when backtick",
+        "should encode and decode to the same data when backtick image",
         async () => {
           const stringWrapper = '"`"';
           const outputPath = imagePath + ".dynamic.backtick";
@@ -322,7 +457,65 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
+          expect(encoded.length).toEqual(9344087); // 110
           expect(Buffer.compare(image, decoded)).toEqual(0);
+        },
+        30000
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when backtick opus",
+        async () => {
+          const stringWrapper = '"`"';
+          const outputPath = opusPath + ".dynamic.backtick";
+
+          encoded = await dynamicEncodeWorker(
+            opusPath,
+            outputPath,
+            stringWrapper
+          );
+          const decoded = yenc.decode(encoded);
+
+          expect(encoded.length).toEqual(925710); // 224
+          expect(Buffer.compare(opus, decoded)).toEqual(0);
+        },
+        30000
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when backtick mpeg",
+        async () => {
+          const stringWrapper = '"`"';
+          const outputPath = mpegPath + ".dynamic.backtick";
+
+          encoded = await dynamicEncodeWorker(
+            mpegPath,
+            outputPath,
+            stringWrapper
+          );
+          const decoded = yenc.decode(encoded);
+
+          expect(encoded.length).toEqual(1282177); // 143
+          expect(Buffer.compare(mpeg, decoded)).toEqual(0);
+        },
+        30000
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when backtick vorbis",
+        async () => {
+          const stringWrapper = '"`"';
+          const outputPath = vorbisPath + ".dynamic.backtick";
+
+          encoded = await dynamicEncodeWorker(
+            vorbisPath,
+            outputPath,
+            stringWrapper
+          );
+          const decoded = yenc.decode(encoded);
+
+          expect(encoded.length).toEqual(1721855); // 118
+          expect(Buffer.compare(vorbis, decoded)).toEqual(0);
         },
         30000
       );
