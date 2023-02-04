@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { Worker } = require("worker_threads");
 
-const yenc = require("../src/simple-yenc");
+const yenc = require("..");
 
 const bytesPath = path.join(__dirname, "bytes.bin");
 const encodedBytesPath = path.join(__dirname, "bytes.yenc");
