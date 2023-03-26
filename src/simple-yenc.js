@@ -91,17 +91,18 @@ const decode = (string, crc32Function = crc32) => {
     byte,
     offset = 42, // default yEnc offset
     isDynEncode = string.length > 13 && string.substring(0, 9) === "dynEncode",
+    dynEncodeVersion,
     startIdx = 0,
     crc;
 
   if (isDynEncode) {
     startIdx = 9 + 2;
-    const version = hexToUint8(string.substring(9, startIdx));
-    if (version <= 1) {
+    dynEncodeVersion = hexToUint8(string.substring(9, startIdx));
+    if (dynEncodeVersion <= 1) {
       startIdx += 2;
       offset = hexToUint8(string.substring(11, startIdx));
     }
-    if (version === 1) {
+    if (dynEncodeVersion === 1) {
       startIdx += 8;
       crc = hexToInt32_LE(string.substring(13, startIdx));
     }
@@ -132,7 +133,7 @@ const decode = (string, crc32Function = crc32) => {
   }
 
   const results = output.subarray(0, byteIndex);
-  if (isDynEncode) {
+  if (isDynEncode && dynEncodeVersion === 1) {
     const actualCrc = crc32Function(results);
     if (actualCrc !== crc) {
       const error = "Decode failed crc32 validation";
