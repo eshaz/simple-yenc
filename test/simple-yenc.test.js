@@ -3,8 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { Worker } from "worker_threads";
 
-//const yenc = require("simple-yenc");
-import * as yenc from "../src/simple-yenc.js";
+import * as yenc from "simple-yenc";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
