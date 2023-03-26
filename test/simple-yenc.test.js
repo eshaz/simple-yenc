@@ -1,8 +1,12 @@
-const fs = require("fs");
-const path = require("path");
-const { Worker } = require("worker_threads");
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { Worker } from "worker_threads";
 
-const yenc = require("..");
+//const yenc = require("simple-yenc");
+import * as yenc from "../src/simple-yenc.js";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 const bytesPath = path.join(__dirname, "bytes.bin");
 const encodedBytesPath = path.join(__dirname, "bytes.yenc");
@@ -192,45 +196,49 @@ describe("simple-yenc.js", () => {
 
   describe("DynEnc Encoded Strings", () => {
     const dynamicEncodeWorker = (imagePath, outputPath, stringWrapper) => {
-      const worker = new Worker(
+      const source =
         "(" +
-          ((
-            inputPath,
-            outputPath,
+        ((
+          inputPath,
+          outputPath,
+          stringWrapper,
+          dynamicEncode,
+          crc32,
+          logDecodeStats
+        ) => {
+          const fs = require("fs");
+          const input = fs.readFileSync(inputPath);
+          const encoded = dynamicEncode(
+            Uint8Array.from(input),
             stringWrapper,
-            dynamicEncode,
-            logDecodeStats
-          ) => {
-            const fs = require("fs");
-            const input = fs.readFileSync(inputPath);
-            const encoded = dynamicEncode(
-              Uint8Array.from(input),
-              stringWrapper
-            );
+            crc32
+          );
 
-            logDecodeStats(
-              "DynEnc " + stringWrapper,
-              input,
-              encoded,
-              parseInt(encoded.substring(11, 13), 16)
-            );
+          logDecodeStats(
+            "DynEnc " + stringWrapper,
+            input,
+            encoded,
+            parseInt(encoded.substring(11, 13), 16)
+          );
 
-            fs.writeFileSync(outputPath, encoded, { encoding: "binary" });
-          }).toString() +
-          ")('" +
-          imagePath +
-          "'," +
-          "'" +
-          outputPath +
-          "'," +
-          stringWrapper +
-          "," +
-          yenc.dynamicEncode.toString() +
-          "," +
-          logDecodeStats.toString() +
-          ")",
-        { eval: true }
-      );
+          fs.writeFileSync(outputPath, encoded, { encoding: "binary" });
+        }).toString() +
+        ")('" +
+        imagePath +
+        "'," +
+        "'" +
+        outputPath +
+        "'," +
+        stringWrapper +
+        "," +
+        yenc.dynamicEncode.toString() +
+        "," +
+        yenc.crc32.toString() +
+        "," +
+        logDecodeStats.toString() +
+        ")";
+
+      const worker = new Worker(source, { eval: true });
 
       return new Promise((res) => worker.on("exit", res)).then(() =>
         fs.promises.readFile(outputPath).then((f) => f.toString("binary"))
@@ -253,7 +261,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(9572293); // 46
+          expect(encoded.length).toEqual(9572301); // 46
           expect(Buffer.compare(image, decoded)).toEqual(0);
         },
         30000
@@ -272,7 +280,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(950184); // 224
+          expect(encoded.length).toEqual(950192); // 224
           expect(Buffer.compare(opus, decoded)).toEqual(0);
         },
         30000
@@ -291,7 +299,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(1311940); // 143
+          expect(encoded.length).toEqual(1311948); // 143
           expect(Buffer.compare(mpeg, decoded)).toEqual(0);
         },
         30000
@@ -310,7 +318,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(1758722); // 118
+          expect(encoded.length).toEqual(1758730); // 118
           expect(Buffer.compare(vorbis, decoded)).toEqual(0);
         },
         30000
@@ -327,7 +335,7 @@ describe("simple-yenc.js", () => {
         );
         const decoded = yenc.decode(encoded);
 
-        expect(encoded.length).toEqual(279);
+        expect(encoded.length).toEqual(287);
         expect(Buffer.compare(bytes, decoded)).toEqual(0);
       }, 30000);
 
@@ -355,7 +363,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(9572486); // 77
+          expect(encoded.length).toEqual(9572494); // 77
           expect(Buffer.compare(image, decoded)).toEqual(0);
         },
         30000
@@ -374,7 +382,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(950157); // 225
+          expect(encoded.length).toEqual(950165); // 225
           expect(Buffer.compare(opus, decoded)).toEqual(0);
         },
         30000
@@ -393,7 +401,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(1311732); // 69
+          expect(encoded.length).toEqual(1311740); // 69
           expect(Buffer.compare(mpeg, decoded)).toEqual(0);
         },
         30000
@@ -412,7 +420,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(1758722); // 188
+          expect(encoded.length).toEqual(1758730); // 188
           expect(Buffer.compare(vorbis, decoded)).toEqual(0);
         },
         30000
@@ -429,7 +437,7 @@ describe("simple-yenc.js", () => {
         );
         const decoded = yenc.decode(encoded);
 
-        expect(encoded.length).toEqual(279);
+        expect(encoded.length).toEqual(287);
         expect(Buffer.compare(bytes, decoded)).toEqual(0);
       }, 30000);
 
@@ -457,7 +465,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(9344087); // 110
+          expect(encoded.length).toEqual(9344095); // 110
           expect(Buffer.compare(image, decoded)).toEqual(0);
         },
         30000
@@ -476,7 +484,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(925710); // 224
+          expect(encoded.length).toEqual(925718); // 224
           expect(Buffer.compare(opus, decoded)).toEqual(0);
         },
         30000
@@ -495,7 +503,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(1282177); // 143
+          expect(encoded.length).toEqual(1282185); // 143
           expect(Buffer.compare(mpeg, decoded)).toEqual(0);
         },
         30000
@@ -514,7 +522,7 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(1721855); // 118
+          expect(encoded.length).toEqual(1721863); // 118
           expect(Buffer.compare(vorbis, decoded)).toEqual(0);
         },
         30000
@@ -540,6 +548,31 @@ describe("simple-yenc.js", () => {
 
         expect(Buffer.compare(image, decodedString));
       });
+    });
+
+    describe("crc", () => {
+      let encoded;
+
+      it("should throw an error when crc doesn't match", async () => {
+        const stringWrapper = '"`"';
+        const outputPath = imagePath + ".dynamic.backtick";
+
+        encoded = await dynamicEncodeWorker(
+          imagePath,
+          outputPath,
+          stringWrapper
+        );
+        encoded = encoded.slice(0, 1234) + " " + encoded.slice(1235);
+
+        let error;
+        try {
+          yenc.decode(encoded);
+        } catch (e) {
+          error = e;
+        }
+
+        expect(error).toEqual(new Error("Decode failed crc32 validation"));
+      }, 30000);
     });
   });
 });

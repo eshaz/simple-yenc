@@ -1,3 +1,20 @@
+/* See https://gcc.gnu.org/git/?p=gcc.git;a=blob_plain;f=libiberty/crc32.c;hb=refs/heads/master */
+const crc32 = (buf, init = 0xffffffff, poly = 0x04c11db7) => {
+  const crc32Table = new Uint8Array(256);
+  let i, j, c;
+
+  for (i = 0; i < 256; i++) {
+    for (c = i << 24, j = 8; j > 0; --j)
+      c = c & 0x80000000 ? (c << 1) ^ poly : c << 1;
+    crc32Table[i] = c;
+  }
+
+  return buf.reduce(
+    (crc, val) => (crc << 8) ^ crc32Table[((crc >> 24) ^ val) & 255],
+    init
+  );
+};
+
 const encode = (byteArray) => {
   const charArray = [];
 
@@ -19,7 +36,17 @@ const encode = (byteArray) => {
   return charArray.join("");
 };
 
-const decode = (string) => {
+const decode = (string, crc32Function = crc32) => {
+  const stringToBytes = (string) =>
+    new Uint8Array(string.length / 2).map((_, i) =>
+      parseInt(string.substring(i * 2, (i + 1) * 2), 16)
+    );
+
+  const hexToUint8 = (string) => stringToBytes(string)[0];
+
+  const hexToInt32_LE = (string) =>
+    new DataView(stringToBytes(string).buffer).getInt32(0, true);
+
   const htmlCodeOverrides = new Map();
   [
     ,
@@ -63,13 +90,20 @@ const decode = (string) => {
     byteIndex = 0,
     byte,
     offset = 42, // default yEnc offset
-    startIdx = 0;
+    isDynEncode = string.length > 13 && string.substring(0, 9) === "dynEncode",
+    startIdx = 0,
+    crc;
 
-  if (string.length > 13 && string.substring(0, 9) === "dynEncode") {
-    const version = parseInt(string.substring(9, 11), 16);
-    if (version === 0) {
-      offset = parseInt(string.substring(11, 13), 16);
-      startIdx = 13;
+  if (isDynEncode) {
+    startIdx = 9 + 2;
+    const version = hexToUint8(string.substring(9, startIdx));
+    if (version <= 1) {
+      startIdx += 2;
+      offset = hexToUint8(string.substring(11, startIdx));
+    }
+    if (version === 1) {
+      startIdx += 8;
+      crc = hexToInt32_LE(string.substring(13, startIdx));
     }
   }
 
@@ -97,13 +131,41 @@ const decode = (string) => {
       byte < offset && byte > 0 ? byte + offsetReverse : byte - offset;
   }
 
-  return output.subarray(0, byteIndex);
+  const results = output.subarray(0, byteIndex);
+  if (isDynEncode) {
+    const actualCrc = crc32Function(results);
+    if (actualCrc !== crc) {
+      const error = "Decode failed crc32 validation";
+      console.error(
+        "`simple-yenc`\n",
+        error + "\n",
+        "Expected: " + crc + "; Got: " + actualCrc + "\n",
+        "Visit https://github.com/eshaz/simple-yenc for more information"
+      );
+      throw new Error(error);
+    }
+  }
+
+  return results;
 };
 
-const dynamicEncode = (byteArray, stringWrapper = '"') => {
+const dynamicEncode = (
+  byteArray,
+  stringWrapper = '"',
+  crc32Function = crc32
+) => {
   const modulo = (n, m) => ((n % m) + m) % m,
     escapeCharacter = (byte1, charArray) =>
       charArray.push(String.fromCharCode(61, (byte1 + 64) % 256));
+
+  const bytesToHex = (bytes) =>
+    bytes.map((byte) => byte.toString(16).padStart(2, "0"));
+
+  const int32ToUint8_LE = (i32) => {
+    const u8 = new Uint8Array(4);
+    new DataView(u8.buffer).setInt32(0, i32, true);
+    return [...u8];
+  };
 
   let shouldEscape,
     escapeBytes,
@@ -182,8 +244,9 @@ const dynamicEncode = (byteArray, stringWrapper = '"') => {
 
   const charArray = [
     "dynEncode", // magic signature
-    "00", // version 0x00 - 0xfe (0xff reserved)
-    offset.toString(16).padStart(2, "0"), // best offset in bytes 0x00 - 0xff
+    "01", // version 0x00 - 0xfe (0xff reserved)
+    bytesToHex([offset]), // best offset in bytes 0x00 - 0xff
+    ...bytesToHex(int32ToUint8_LE(crc32Function(byteArray))), // crc32
   ];
 
   for (let i = 0; i < byteArray.length; i++) {
@@ -211,4 +274,4 @@ const stringify = (rawString) =>
     .replace(/[`]/g, "\\`")
     .replace(/\${/g, "\\${");
 
-export { encode, dynamicEncode, decode, stringify };
+export { encode, dynamicEncode, decode, stringify, crc32 };
