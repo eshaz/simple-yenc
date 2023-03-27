@@ -1,7 +1,10 @@
 /* See https://gcc.gnu.org/git/?p=gcc.git;a=blob_plain;f=libiberty/crc32.c;hb=refs/heads/master */
 const crc32 = (buf, init = 0xffffffff, poly = 0x04c11db7) => {
-  const crc32Table = new Uint8Array(256);
-  let i, j, c;
+  const crc32Table = new Int32Array(256);
+  let i,
+    j,
+    c,
+    crc = init;
 
   for (i = 0; i < 256; i++) {
     for (c = i << 24, j = 8; j > 0; --j)
@@ -9,10 +12,10 @@ const crc32 = (buf, init = 0xffffffff, poly = 0x04c11db7) => {
     crc32Table[i] = c;
   }
 
-  return buf.reduce(
-    (crc, val) => (crc << 8) ^ crc32Table[((crc >> 24) ^ val) & 255],
-    init
-  );
+  for (i = 0; i < buf.length; i++)
+    crc = (crc << 8) ^ crc32Table[((crc >> 24) ^ buf[i]) & 255];
+
+  return crc;
 };
 
 const encode = (byteArray) => {
