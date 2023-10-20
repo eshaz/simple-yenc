@@ -11,22 +11,22 @@ const bytesPath = path.join(__dirname, "bytes.bin");
 const encodedBytesPath = path.join(__dirname, "bytes.yenc");
 const imagePath = path.join(
   __dirname,
-  "418294_tree-woody-plant-vascular-plant.jpg"
+  "418294_tree-woody-plant-vascular-plant.jpg",
 );
 const opusPath = path.join(__dirname, "ogg.opus");
 const vorbisPath = path.join(__dirname, "ogg.vorbis");
 const mpegPath = path.join(__dirname, "mpeg.cbr.mp3");
 const base64ImagePath = path.join(
   __dirname,
-  "418294_tree-woody-plant-vascular-plant.jpg.base64"
+  "418294_tree-woody-plant-vascular-plant.jpg.base64",
 );
 const encodedImagePath = path.join(
   __dirname,
-  "418294_tree-woody-plant-vascular-plant.jpg.yenc"
+  "418294_tree-woody-plant-vascular-plant.jpg.yenc",
 );
 const stringifiedImagePath = path.join(
   __dirname,
-  "418294_tree-woody-plant-vascular-plant.jpg.yenc.stringified"
+  "418294_tree-woody-plant-vascular-plant.jpg.yenc.stringified",
 );
 
 const generateTestData = () => {
@@ -60,7 +60,7 @@ const logDecodeStats = (testName, input, output, offset) => {
         100 +
       "% overhead using escape offset " +
       offset +
-      "\n"
+      "\n",
   );
 };
 
@@ -203,21 +203,21 @@ describe("simple-yenc.js", () => {
           stringWrapper,
           dynamicEncode,
           crc32,
-          logDecodeStats
+          logDecodeStats,
         ) => {
           const fs = require("fs");
           const input = fs.readFileSync(inputPath);
           const encoded = dynamicEncode(
             Uint8Array.from(input),
             stringWrapper,
-            crc32
+            crc32,
           );
 
           logDecodeStats(
             "DynEnc " + stringWrapper,
             input,
             encoded,
-            parseInt(encoded.substring(11, 13), 16)
+            parseInt(encoded.substring(11, 13), 16),
           );
 
           fs.writeFileSync(outputPath, encoded, { encoding: "binary" });
@@ -240,7 +240,7 @@ describe("simple-yenc.js", () => {
       const worker = new Worker(source, { eval: true });
 
       return new Promise((res) => worker.on("exit", res)).then(() =>
-        fs.promises.readFile(outputPath).then((f) => f.toString("binary"))
+        fs.promises.readFile(outputPath).then((f) => f.toString("binary")),
       );
     };
 
@@ -256,14 +256,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             imagePath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(9572301); // 46
           expect(Buffer.compare(image, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it.concurrent(
@@ -275,14 +275,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             opusPath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(950192); // 224
           expect(Buffer.compare(opus, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it.concurrent(
@@ -294,14 +294,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             mpegPath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(1311948); // 143
           expect(Buffer.compare(mpeg, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it.concurrent(
@@ -313,14 +313,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             vorbisPath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(1758730); // 118
           expect(Buffer.compare(vorbis, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it("should encode and decode all bytes when double quote", async () => {
@@ -330,7 +330,7 @@ describe("simple-yenc.js", () => {
         encoded = await dynamicEncodeWorker(
           bytesPath,
           outputPath,
-          stringWrapper
+          stringWrapper,
         );
         const decoded = yenc.decode(encoded);
 
@@ -358,14 +358,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             imagePath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(9572494); // 77
           expect(Buffer.compare(image, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it.concurrent(
@@ -377,14 +377,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             opusPath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(950165); // 225
           expect(Buffer.compare(opus, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it.concurrent(
@@ -396,14 +396,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             mpegPath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(1311740); // 69
           expect(Buffer.compare(mpeg, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it.concurrent(
@@ -415,14 +415,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             vorbisPath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(1758730); // 188
           expect(Buffer.compare(vorbis, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it("should encode and decode all bytes when single quote", async () => {
@@ -432,7 +432,7 @@ describe("simple-yenc.js", () => {
         encoded = await dynamicEncodeWorker(
           bytesPath,
           outputPath,
-          stringWrapper
+          stringWrapper,
         );
         const decoded = yenc.decode(encoded);
 
@@ -460,14 +460,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             imagePath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(9344095); // 110
           expect(Buffer.compare(image, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it.concurrent(
@@ -479,14 +479,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             opusPath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(925718); // 224
           expect(Buffer.compare(opus, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it.concurrent(
@@ -498,14 +498,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             mpegPath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(1282185); // 143
           expect(Buffer.compare(mpeg, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it.concurrent(
@@ -517,14 +517,14 @@ describe("simple-yenc.js", () => {
           encoded = await dynamicEncodeWorker(
             vorbisPath,
             outputPath,
-            stringWrapper
+            stringWrapper,
           );
           const decoded = yenc.decode(encoded);
 
           expect(encoded.length).toEqual(1721863); // 118
           expect(Buffer.compare(vorbis, decoded)).toEqual(0);
         },
-        30000
+        30000,
       );
 
       it("should encode and decode all bytes when backtick", async () => {
@@ -534,7 +534,7 @@ describe("simple-yenc.js", () => {
         encoded = await dynamicEncodeWorker(
           bytesPath,
           outputPath,
-          stringWrapper
+          stringWrapper,
         );
         const decoded = yenc.decode(encoded);
 
@@ -559,7 +559,7 @@ describe("simple-yenc.js", () => {
         encoded = await dynamicEncodeWorker(
           imagePath,
           outputPath,
-          stringWrapper
+          stringWrapper,
         );
         encoded = encoded.slice(0, 1234) + " " + encoded.slice(1235);
 
@@ -571,6 +571,122 @@ describe("simple-yenc.js", () => {
         }
 
         expect(error).toEqual(new Error("Decode failed crc32 validation"));
+      }, 30000);
+    });
+
+    describe("UTF escape codes", () => {
+      let encoded;
+
+      const utf8Escape = (string) =>
+        Array.from(string)
+          .map((ch) =>
+            ch.charCodeAt(0) <= 0x7f
+              ? ch
+              : "\\u" + ("0000" + ch.charCodeAt(0).toString(16)).slice(-4),
+          )
+          .join("");
+
+      it.concurrent(
+        "should encode and decode to the same data when backtick image and utf8 escaped",
+        async () => {
+          const stringWrapper = '"`"';
+          const outputPath = imagePath + ".dynamic.backtick";
+
+          const encoder = new TextEncoder();
+          const decoder = new TextDecoder();
+
+          encoded = await dynamicEncodeWorker(
+            imagePath,
+            outputPath,
+            stringWrapper,
+          );
+          const utf8_escaped = utf8Escape(encoded);
+
+          const decoded = yenc.decode(utf8_escaped);
+
+          expect(encoded.length).toEqual(9344095); // 110
+          expect(Buffer.compare(image, decoded)).toEqual(0);
+        },
+        30000,
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when backtick opus and utf8 escaped",
+        async () => {
+          const stringWrapper = '"`"';
+          const outputPath = opusPath + ".dynamic.backtick";
+
+          encoded = await dynamicEncodeWorker(
+            opusPath,
+            outputPath,
+            stringWrapper,
+          );
+          const utf8_escaped = utf8Escape(encoded);
+
+          const decoded = yenc.decode(utf8_escaped);
+
+          expect(encoded.length).toEqual(925718); // 224
+          expect(Buffer.compare(opus, decoded)).toEqual(0);
+        },
+        30000,
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when backtick mpeg and utf8 escaped",
+        async () => {
+          const stringWrapper = '"`"';
+          const outputPath = mpegPath + ".dynamic.backtick";
+
+          encoded = await dynamicEncodeWorker(
+            mpegPath,
+            outputPath,
+            stringWrapper,
+          );
+          const utf8_escaped = utf8Escape(encoded);
+
+          const decoded = yenc.decode(utf8_escaped);
+
+          expect(encoded.length).toEqual(1282185); // 143
+          expect(Buffer.compare(mpeg, decoded)).toEqual(0);
+        },
+        30000,
+      );
+
+      it.concurrent(
+        "should encode and decode to the same data when backtick vorbis and utf8 escaped",
+        async () => {
+          const stringWrapper = '"`"';
+          const outputPath = vorbisPath + ".dynamic.backtick";
+
+          encoded = await dynamicEncodeWorker(
+            vorbisPath,
+            outputPath,
+            stringWrapper,
+          );
+          const utf8_escaped = utf8Escape(encoded);
+
+          const decoded = yenc.decode(utf8_escaped);
+
+          expect(encoded.length).toEqual(1721863); // 118
+          expect(Buffer.compare(vorbis, decoded)).toEqual(0);
+        },
+        30000,
+      );
+
+      it("should encode and decode all bytes when backtick and utf8 escaped", async () => {
+        const stringWrapper = '"`"';
+        const outputPath = bytesPath + ".dynamic.backtick.bytes";
+
+        encoded = await dynamicEncodeWorker(
+          bytesPath,
+          outputPath,
+          stringWrapper,
+        );
+        const utf8_escaped = utf8Escape(encoded);
+
+        const decoded = yenc.decode(utf8_escaped);
+
+        expect(Buffer.compare(bytes, decoded)).toEqual(0);
       }, 30000);
     });
   });

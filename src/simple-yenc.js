@@ -42,7 +42,7 @@ const encode = (byteArray) => {
 const decode = (string, crc32Function = crc32) => {
   const stringToBytes = (string) =>
     new Uint8Array(string.length / 2).map((_, i) =>
-      parseInt(string.substring(i * 2, (i + 1) * 2), 16)
+      parseInt(string.substring(i * 2, (i + 1) * 2), 16),
     );
 
   const hexToUint8 = (string) => stringToBytes(string)[0];
@@ -121,6 +121,23 @@ const decode = (string, crc32Function = crc32) => {
       continue;
     }
 
+    // work around for encoded strings that are UTF escaped
+    if (
+      byte === 92 && // /
+      i < string.length - 5 &&
+      isDynEncode
+    ) {
+      const secondCharacter = string.charCodeAt(i + 1);
+
+      if (
+        secondCharacter === 117 || // u
+        secondCharacter === 85 //     U
+      ) {
+        byte = parseInt(string.substring(i + 2, i + 6), 16);
+        i += 5;
+      }
+    }
+
     if (byte > 255) {
       const htmlOverride = htmlCodeOverrides.get(byte);
       if (htmlOverride) byte = htmlOverride + 127;
@@ -144,7 +161,7 @@ const decode = (string, crc32Function = crc32) => {
         "`simple-yenc`\n",
         error + "\n",
         "Expected: " + crc + "; Got: " + actualCrc + "\n",
-        "Visit https://github.com/eshaz/simple-yenc for more information"
+        "Visit https://github.com/eshaz/simple-yenc for more information",
       );
       throw new Error(error);
     }
@@ -156,7 +173,7 @@ const decode = (string, crc32Function = crc32) => {
 const dynamicEncode = (
   byteArray,
   stringWrapper = '"',
-  crc32Function = crc32
+  crc32Function = crc32,
 ) => {
   const modulo = (n, m) => ((n % m) + m) % m,
     escapeCharacter = (byte1, charArray) =>
