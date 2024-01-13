@@ -284,9 +284,9 @@ const dynamicEncode = (
   }
 
   // correct edge case where escape character is at end of string
-  if (charArray[charArray.length - 1] === "\\" && shouldEscape(92)) {
+  if (charArray[charArray.length - 1] === "\\") {
     charArray.pop();
-    escapeCharacter("\\", charArray);
+    escapeCharacter(92, charArray);
   }
 
   return charArray.join("");

@@ -57,8 +57,11 @@ const logDecodeStats = (testName, input, output, offset) => {
       "to " +
       output.length +
       " bytes with " +
-      Math.round((output.length / input.length - 1 + Number.EPSILON) * 10000) /
-        100 +
+      (
+        Math.round(
+          (output.length / input.length - 1 + Number.EPSILON) * 10000,
+        ) / 100
+      ).toFixed(2) +
       "% overhead using escape offset " +
       offset +
       "\n",
@@ -66,6 +69,20 @@ const logDecodeStats = (testName, input, output, offset) => {
 };
 
 describe("simple-yenc.js", () => {
+  const fileReadPromise = Promise.all([
+    fs.promises.readFile(imagePath),
+    fs.promises.readFile(opusPath),
+    fs.promises.readFile(mpegPath),
+    fs.promises.readFile(vorbisPath),
+    fs.promises.readFile(encodedImagePath).then((f) => f.toString("binary")),
+    fs.promises.readFile(bytesPath),
+    fs.promises.readFile(encodedBytesPath).then((f) => f.toString("binary")),
+    fs.promises
+      .readFile(stringifiedImagePath)
+      .then((f) => f.toString("binary")),
+    fs.promises.readFile(offsetTestPath),
+  ]);
+
   let image,
     opus,
     mpeg,
@@ -73,8 +90,59 @@ describe("simple-yenc.js", () => {
     encodedImage,
     bytes,
     encodedBytes,
-    stringifiedImage,
-    offsetTest;
+    stringifiedImage;
+
+  const testVariableOffsets = (
+    functionPrefix,
+    testFilePrefix,
+    stringWrapper,
+  ) => {
+    for (let i = 0; i < 256; i++) {
+      const testName = `should encode and decode bytes with ${stringWrapper} at offset ${i}`;
+      it.concurrent(testName, async () => {
+        const offsetTest = (await fileReadPromise)[8];
+
+        const encodedString = yenc.dynamicEncode(
+          offsetTest,
+          stringWrapper,
+          yenc.crc32,
+          i,
+        );
+
+        logDecodeStats("DynEnc variable offset", offsetTest, encodedString, i);
+
+        // create javascript code that contains encoded data
+        const encodedFunction = Buffer.concat(
+          [functionPrefix, stringWrapper, encodedString, stringWrapper].map(
+            (string) => Buffer.from(string, { encoding: "binary" }),
+          ),
+        );
+        const testFilePath = path.join(
+          __dirname,
+          `${testFilePrefix}.${i}.dynamic.js`,
+        );
+        await fs.promises.writeFile(testFilePath, encodedFunction);
+
+        // import the created code to execute and test decoding
+        const { getEncoded } = await import(testFilePath);
+        await fs.promises.rm(testFilePath);
+
+        const encodedStringFromFunction = getEncoded();
+
+        // assert decoding is correct
+        const decoded = yenc.decode(encodedStringFromFunction);
+        const compareResult = Buffer.compare(decoded, offsetTest);
+        // save decoded result if failure for debugging
+        if (compareResult !== 0)
+          await fs.promises.writeFileSync(
+            `${testFilePrefix}.${i}.dynamic.failed`, // need to comment out the thrown exception here for this to save
+            decoded,
+          );
+
+        expect(compareResult).toEqual(0);
+      });
+    }
+  };
 
   beforeAll(async () => {
     //generateTestData();
@@ -87,20 +155,7 @@ describe("simple-yenc.js", () => {
       bytes,
       encodedBytes,
       stringifiedImage,
-      offsetTest,
-    ] = await Promise.all([
-      fs.promises.readFile(imagePath),
-      fs.promises.readFile(opusPath),
-      fs.promises.readFile(mpegPath),
-      fs.promises.readFile(vorbisPath),
-      fs.promises.readFile(encodedImagePath).then((f) => f.toString("binary")),
-      fs.promises.readFile(bytesPath),
-      fs.promises.readFile(encodedBytesPath).then((f) => f.toString("binary")),
-      fs.promises
-        .readFile(stringifiedImagePath)
-        .then((f) => f.toString("binary")),
-      fs.promises.readFile(offsetTestPath),
-    ]);
+    ] = await fileReadPromise;
   });
 
   describe("yEnc encoded strings", () => {
@@ -327,51 +382,41 @@ describe("simple-yenc.js", () => {
         30000,
       );
 
-      it("should encode and decode all bytes when double quote", async () => {
-        const stringWrapper = '"\\""';
-        const outputPath = bytesPath + ".dynamic.doublequote.bytes";
+      it.concurrent(
+        "should encode and decode all bytes when double quote",
+        async () => {
+          const stringWrapper = '"\\""';
+          const outputPath = bytesPath + ".dynamic.doublequote.bytes";
 
-        encoded = await dynamicEncodeWorker(
-          bytesPath,
-          outputPath,
-          stringWrapper,
-        );
-        const decoded = yenc.decode(encoded);
+          encoded = await dynamicEncodeWorker(
+            bytesPath,
+            outputPath,
+            stringWrapper,
+          );
+          const decoded = yenc.decode(encoded);
 
-        expect(encoded.length).toEqual(287);
-        expect(Buffer.compare(bytes, decoded)).toEqual(0);
-      }, 30000);
+          expect(encoded.length).toEqual(287);
+          expect(Buffer.compare(bytes, decoded)).toEqual(0);
+        },
+        30000,
+      );
 
-      it("should properly escape characters for a string using double quotes", () => {
-        const stringifiedInJs = eval('() => "' + encoded + '"')();
-        const decodedString = yenc.decode(stringifiedInJs);
+      it.concurrent(
+        "should properly escape characters for a string using double quotes",
+        () => {
+          const stringifiedInJs = eval('() => "' + encoded + '"')();
+          const decodedString = yenc.decode(stringifiedInJs);
 
-        expect(Buffer.compare(image, decodedString));
-      });
+          expect(Buffer.compare(image, decodedString));
+        },
+      );
 
       describe("variable offsets", () => {
-        for (let i = 0; i < 256; i++) {
-          it(`should encode and decode bytes at offset ${i}`, () => {
-            const stringWrapper = '"';
-            const encoded = yenc.dynamicEncode(
-              offsetTest,
-              stringWrapper,
-              yenc.crc32,
-              i,
-            );
+        const functionPrefix = "export const getEncoded = () => ";
+        const testFilePrefix = "variable.offset.backtick";
+        const stringWrapper = '"';
 
-            const decoded = yenc.decode(encoded);
-
-            const compareResult = Buffer.compare(decoded, offsetTest);
-            if (compareResult !== 0)
-              fs.writeFileSync(
-                `${offsetTestPath}.${i}.dynamic.failed`,
-                decoded,
-              );
-
-            expect(compareResult).toEqual(0);
-          });
-        }
+        testVariableOffsets(functionPrefix, testFilePrefix, stringWrapper);
       });
     });
 
@@ -454,50 +499,41 @@ describe("simple-yenc.js", () => {
         30000,
       );
 
-      it("should encode and decode all bytes when single quote", async () => {
-        const stringWrapper = '"\'"';
-        const outputPath = bytesPath + ".dynamic.singlequote.bytes";
+      it.concurrent(
+        "should encode and decode all bytes when single quote",
+        async () => {
+          const stringWrapper = '"\'"';
+          const outputPath = bytesPath + ".dynamic.singlequote.bytes";
 
-        encoded = await dynamicEncodeWorker(
-          bytesPath,
-          outputPath,
-          stringWrapper,
-        );
-        const decoded = yenc.decode(encoded);
+          encoded = await dynamicEncodeWorker(
+            bytesPath,
+            outputPath,
+            stringWrapper,
+          );
+          const decoded = yenc.decode(encoded);
 
-        expect(encoded.length).toEqual(287);
-        expect(Buffer.compare(bytes, decoded)).toEqual(0);
-      }, 30000);
+          expect(encoded.length).toEqual(287);
+          expect(Buffer.compare(bytes, decoded)).toEqual(0);
+        },
+        30000,
+      );
 
-      it("should properly escape characters for a string using a single quote", () => {
-        const stringifiedInJs = eval("() => '" + encoded + "'")();
-        const decodedString = yenc.decode(stringifiedInJs);
+      it.concurrent(
+        "should properly escape characters for a string using a single quote",
+        () => {
+          const stringifiedInJs = eval("() => '" + encoded + "'")();
+          const decodedString = yenc.decode(stringifiedInJs);
 
-        expect(Buffer.compare(image, decodedString));
-      });
+          expect(Buffer.compare(image, decodedString));
+        },
+      );
 
       describe("variable offsets", () => {
-        for (let i = 0; i < 256; i++) {
-          it(`should encode and decode bytes at offset ${i}`, () => {
-            const stringWrapper = "'";
-            const encoded = yenc.dynamicEncode(
-              offsetTest,
-              stringWrapper,
-              yenc.crc32,
-              i,
-            );
-            const decoded = yenc.decode(encoded);
+        const functionPrefix = "export const getEncoded = () => ";
+        const testFilePrefix = "variable.offset.backtick";
+        const stringWrapper = "'";
 
-            const compareResult = Buffer.compare(decoded, offsetTest);
-            if (compareResult !== 0)
-              fs.writeFileSync(
-                `${offsetTestPath}.${i}.dynamic.failed`,
-                decoded,
-              );
-
-            expect(compareResult).toEqual(0);
-          });
-        }
+        testVariableOffsets(functionPrefix, testFilePrefix, stringWrapper);
       });
     });
 
@@ -580,49 +616,40 @@ describe("simple-yenc.js", () => {
         30000,
       );
 
-      it("should encode and decode all bytes when backtick", async () => {
-        const stringWrapper = '"`"';
-        const outputPath = bytesPath + ".dynamic.backtick.bytes";
+      it.concurrent(
+        "should encode and decode all bytes when backtick",
+        async () => {
+          const stringWrapper = '"`"';
+          const outputPath = bytesPath + ".dynamic.backtick.bytes";
 
-        encoded = await dynamicEncodeWorker(
-          bytesPath,
-          outputPath,
-          stringWrapper,
-        );
-        const decoded = yenc.decode(encoded);
+          encoded = await dynamicEncodeWorker(
+            bytesPath,
+            outputPath,
+            stringWrapper,
+          );
+          const decoded = yenc.decode(encoded);
 
-        expect(Buffer.compare(bytes, decoded)).toEqual(0);
-      }, 30000);
+          expect(Buffer.compare(bytes, decoded)).toEqual(0);
+        },
+        30000,
+      );
 
-      it("should properly escape characters for a string template", () => {
-        const stringifiedInJs = eval("() => String.raw`" + encoded + "`")();
-        const decodedString = yenc.decode(stringifiedInJs);
+      it.concurrent(
+        "should properly escape characters for a string template",
+        () => {
+          const stringifiedInJs = eval("() => String.raw`" + encoded + "`")();
+          const decodedString = yenc.decode(stringifiedInJs);
 
-        expect(Buffer.compare(image, decodedString));
-      });
+          expect(Buffer.compare(image, decodedString));
+        },
+      );
 
       describe("variable offsets", () => {
-        for (let i = 0; i < 256; i++) {
-          it(`should encode and decode bytes at offset ${i}`, () => {
-            const stringWrapper = "`";
-            const encoded = yenc.dynamicEncode(
-              offsetTest,
-              stringWrapper,
-              yenc.crc32,
-              i,
-            );
-            const decoded = yenc.decode(encoded);
+        const functionPrefix = "export const getEncoded = () => String.raw";
+        const testFilePrefix = "variable.offset.backtick";
+        const stringWrapper = "`";
 
-            const compareResult = Buffer.compare(decoded, offsetTest);
-            if (compareResult !== 0)
-              fs.writeFileSync(
-                `${offsetTestPath}.${i}.dynamic.failed`,
-                decoded,
-              );
-
-            expect(compareResult).toEqual(0);
-          });
-        }
+        testVariableOffsets(functionPrefix, testFilePrefix, stringWrapper);
       });
     });
 
@@ -750,21 +777,25 @@ describe("simple-yenc.js", () => {
         30000,
       );
 
-      it("should encode and decode all bytes when backtick and utf8 escaped", async () => {
-        const stringWrapper = '"`"';
-        const outputPath = bytesPath + ".dynamic.backtick.bytes";
+      it.concurrent(
+        "should encode and decode all bytes when backtick and utf8 escaped",
+        async () => {
+          const stringWrapper = '"`"';
+          const outputPath = bytesPath + ".dynamic.backtick.bytes";
 
-        encoded = await dynamicEncodeWorker(
-          bytesPath,
-          outputPath,
-          stringWrapper,
-        );
-        const utf8_escaped = utf8Escape(encoded);
+          encoded = await dynamicEncodeWorker(
+            bytesPath,
+            outputPath,
+            stringWrapper,
+          );
+          const utf8_escaped = utf8Escape(encoded);
 
-        const decoded = yenc.decode(utf8_escaped);
+          const decoded = yenc.decode(utf8_escaped);
 
-        expect(Buffer.compare(bytes, decoded)).toEqual(0);
-      }, 30000);
+          expect(Buffer.compare(bytes, decoded)).toEqual(0);
+        },
+        30000,
+      );
     });
   });
 });
