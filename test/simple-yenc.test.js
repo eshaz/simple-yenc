@@ -28,6 +28,7 @@ const stringifiedImagePath = path.join(
   __dirname,
   "418294_tree-woody-plant-vascular-plant.jpg.yenc.stringified",
 );
+const offsetTestPath = path.join(__dirname, "offset_test.bin");
 
 const generateTestData = () => {
   const image = fs.readFileSync(imagePath);
@@ -72,7 +73,8 @@ describe("simple-yenc.js", () => {
     encodedImage,
     bytes,
     encodedBytes,
-    stringifiedImage;
+    stringifiedImage,
+    offsetTest;
 
   beforeAll(async () => {
     //generateTestData();
@@ -85,6 +87,7 @@ describe("simple-yenc.js", () => {
       bytes,
       encodedBytes,
       stringifiedImage,
+      offsetTest,
     ] = await Promise.all([
       fs.promises.readFile(imagePath),
       fs.promises.readFile(opusPath),
@@ -96,6 +99,7 @@ describe("simple-yenc.js", () => {
       fs.promises
         .readFile(stringifiedImagePath)
         .then((f) => f.toString("binary")),
+      fs.promises.readFile(offsetTestPath),
     ]);
   });
 
@@ -344,6 +348,31 @@ describe("simple-yenc.js", () => {
 
         expect(Buffer.compare(image, decodedString));
       });
+
+      describe("variable offsets", () => {
+        for (let i = 0; i < 256; i++) {
+          it(`should encode and decode bytes at offset ${i}`, () => {
+            const stringWrapper = '"';
+            const encoded = yenc.dynamicEncode(
+              offsetTest,
+              stringWrapper,
+              yenc.crc32,
+              i,
+            );
+
+            const decoded = yenc.decode(encoded);
+
+            const compareResult = Buffer.compare(decoded, offsetTest);
+            if (compareResult !== 0)
+              fs.writeFileSync(
+                `${offsetTestPath}.${i}.dynamic.failed`,
+                decoded,
+              );
+
+            expect(compareResult).toEqual(0);
+          });
+        }
+      });
     });
 
     describe("single quote", () => {
@@ -446,6 +475,30 @@ describe("simple-yenc.js", () => {
 
         expect(Buffer.compare(image, decodedString));
       });
+
+      describe("variable offsets", () => {
+        for (let i = 0; i < 256; i++) {
+          it(`should encode and decode bytes at offset ${i}`, () => {
+            const stringWrapper = "'";
+            const encoded = yenc.dynamicEncode(
+              offsetTest,
+              stringWrapper,
+              yenc.crc32,
+              i,
+            );
+            const decoded = yenc.decode(encoded);
+
+            const compareResult = Buffer.compare(decoded, offsetTest);
+            if (compareResult !== 0)
+              fs.writeFileSync(
+                `${offsetTestPath}.${i}.dynamic.failed`,
+                decoded,
+              );
+
+            expect(compareResult).toEqual(0);
+          });
+        }
+      });
     });
 
     describe("backtick", () => {
@@ -546,6 +599,30 @@ describe("simple-yenc.js", () => {
         const decodedString = yenc.decode(stringifiedInJs);
 
         expect(Buffer.compare(image, decodedString));
+      });
+
+      describe("variable offsets", () => {
+        for (let i = 0; i < 256; i++) {
+          it(`should encode and decode bytes at offset ${i}`, () => {
+            const stringWrapper = "`";
+            const encoded = yenc.dynamicEncode(
+              offsetTest,
+              stringWrapper,
+              yenc.crc32,
+              i,
+            );
+            const decoded = yenc.decode(encoded);
+
+            const compareResult = Buffer.compare(decoded, offsetTest);
+            if (compareResult !== 0)
+              fs.writeFileSync(
+                `${offsetTestPath}.${i}.dynamic.failed`,
+                decoded,
+              );
+
+            expect(compareResult).toEqual(0);
+          });
+        }
       });
     });
 

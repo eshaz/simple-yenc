@@ -174,6 +174,7 @@ const dynamicEncode = (
   byteArray,
   stringWrapper = '"',
   crc32Function = crc32,
+  offset,
 ) => {
   const modulo = (n, m) => ((n % m) + m) % m,
     escapeCharacter = (byte1, charArray) =>
@@ -192,8 +193,7 @@ const dynamicEncode = (
     escapeBytes,
     byteSequences = [],
     offsetLength = Infinity,
-    byteCounts = Array(256).fill(0),
-    offset = 0;
+    byteCounts = Array(256).fill(0);
 
   if (stringWrapper === '"') {
     escapeBytes = [0, 8, 9, 10, 11, 12, 13, 34, 92, 61];
@@ -232,34 +232,38 @@ const dynamicEncode = (
       byte1 === 96; // `
   }
 
-  // collect the number of bytes for the offset search
-  for (let i = 0; i < byteArray.length; i++) {
-    const byte1 = byteArray[i] | 0;
+  if (offset === undefined) {
+    offset = 0;
 
-    byteCounts[byte1]++;
+    // collect the number of bytes for the offset search
+    for (let i = 0; i < byteArray.length; i++) {
+      const byte1 = byteArray[i] | 0;
 
-    for (let j = 0; j < byteSequences.length; j++) {
-      const byteSequence = byteSequences[j];
+      byteCounts[byte1]++;
 
-      // for the backtick escape, there are sequences of bytes that need to be escaped
-      // check if this byte sequence is the same and add to the length count if so
-      if (modulo((byte1 - byteArray[i + 1]) | 0, 256) === byteSequence)
-        byteCounts[byte1]++;
+      for (let j = 0; j < byteSequences.length; j++) {
+        const byteSequence = byteSequences[j];
+
+        // for the backtick escape, there are sequences of bytes that need to be escaped
+        // check if this byte sequence is the same and add to the length count if so
+        if (modulo((byte1 - byteArray[i + 1]) | 0, 256) === byteSequence)
+          byteCounts[byte1]++;
+      }
     }
-  }
 
-  // search for the byte offset with the least amount of escape characters
-  for (let o = 0; o < 256; o++) {
-    let length = 0;
+    // search for the byte offset with the least amount of escape characters
+    for (let o = 0; o < 256; o++) {
+      let length = 0;
 
-    // for each escape byte, add the byte counts collected above
-    for (let i = 0; i < escapeBytes.length; i++)
-      length += byteCounts[modulo(escapeBytes[i] - o, 256)];
+      // for each escape byte, add the byte counts collected above
+      for (let i = 0; i < escapeBytes.length; i++)
+        length += byteCounts[modulo(escapeBytes[i] - o, 256)];
 
-    // if the current offset results in a smaller length, use that
-    if (length < offsetLength) {
-      offsetLength = length;
-      offset = o;
+      // if the current offset results in a smaller length, use that
+      if (length < offsetLength) {
+        offsetLength = length;
+        offset = o;
+      }
     }
   }
 
@@ -280,7 +284,7 @@ const dynamicEncode = (
   }
 
   // correct edge case where escape character is at end of string
-  if (charArray[charArray.length - 1] === "\\") {
+  if (charArray[charArray.length - 1] === "\\" && shouldEscape(92)) {
     charArray.pop();
     escapeCharacter("\\", charArray);
   }
