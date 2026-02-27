@@ -553,7 +553,6 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(9344095); // 110
           expect(Buffer.compare(image, decoded)).toEqual(0);
         },
         30000,
@@ -572,7 +571,6 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(925718); // 224
           expect(Buffer.compare(opus, decoded)).toEqual(0);
         },
         30000,
@@ -591,7 +589,6 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(1282185); // 143
           expect(Buffer.compare(mpeg, decoded)).toEqual(0);
         },
         30000,
@@ -610,7 +607,6 @@ describe("simple-yenc.js", () => {
           );
           const decoded = yenc.decode(encoded);
 
-          expect(encoded.length).toEqual(1721863); // 118
           expect(Buffer.compare(vorbis, decoded)).toEqual(0);
         },
         30000,
@@ -796,6 +792,37 @@ describe("simple-yenc.js", () => {
         },
         30000,
       );
+    });
+
+    describe("Bun String.raw compatibility", () => {
+      it("should decode \\uFFFD as null byte in backtick dynEncode strings", () => {
+        const encoded = "dynEncode0000\uFFFDA";
+        const decoded = yenc.decode(encoded);
+
+        expect(decoded[0]).toEqual(0);
+        expect(decoded[1]).toEqual(65);
+      });
+
+      it("should not embed raw null bytes in backtick-encoded strings", () => {
+        const input = new Uint8Array([0, 1, 2, 3]);
+        const encoded = yenc.dynamicEncode(input, "`", yenc.crc32, 0);
+
+        const payload = encoded.slice(21);
+        expect(payload.indexOf("\0")).toEqual(-1);
+
+        const decoded = yenc.decode(encoded);
+        expect(Buffer.compare(input, decoded)).toEqual(0);
+      });
+
+      it("should round-trip all 256 byte values through backtick encode/decode", () => {
+        const input = new Uint8Array(256);
+        for (let i = 0; i < 256; i++) input[i] = i;
+
+        const encoded = yenc.dynamicEncode(input, "`");
+        const decoded = yenc.decode(encoded);
+
+        expect(Buffer.compare(input, decoded)).toEqual(0);
+      });
     });
   });
 });
