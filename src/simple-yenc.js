@@ -134,6 +134,7 @@ const decode = (string, crc32Function = crc32) => {
         secondCharacter === 85 //     U
       ) {
         byte = parseInt(string.substring(i + 2, i + 6), 16);
+        if (byte === 0xfffd) byte = 0;
         i += 5;
       }
     }
@@ -222,9 +223,10 @@ const dynamicEncode = (
       byte1 === 92 || // \
       byte1 === 61; //   =;
   } else if (stringWrapper === "`") {
-    escapeBytes = [13, 61, 96];
+    escapeBytes = [0, 13, 61, 96];
     byteSequences = [7, 205, 231];
     shouldEscape = (byte1, byte2) =>
+      byte1 === 0 || //  NULL
       byte1 === 13 || // CR
       (byte1 === 36 && byte2 === 123) || // ${
       byte1 === 61 || // =
